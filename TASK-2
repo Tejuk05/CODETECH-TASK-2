@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Blogging Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        nav h1 {
+            font-size: 24px;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            background-color: #007BFF;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .auth-form {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .auth-form input, textarea {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        .error {
+            color: red;
+            margin-top: 10px;
+        }
+
+        #postsSection, #friendsSection, #messagesSection {
+            margin-top: 20px;
+        }
+
+        .post, .friend, .message {
+            border: 1px solid #ccc;
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+
+        .post h3, .friend h3, .message h3 {
+            margin-bottom: 10px;
+        }
+
+        .friend img {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <nav>
+            <h1>Enhanced Blogging Platform</h1>
+            <button id="logoutButton" style="display: none;">Logout</button>
+        </nav>
+
+        <div id="signupForm" class="auth-form">
+            <h2>Sign Up</h2>
+            <input type="text" id="signupUsername" placeholder="Username">
+            <input type="password" id="signupPassword" placeholder="Password">
+            <input type="file" id="signupProfilePic" accept="image/*">
+            <button id="signupButton">Sign Up</button>
+            <p id="signupError" class="error"></p>
+            <p>Already have an account? <button id="showLoginButton">Login</button></p>
+        </div>
+
+        <div id="loginForm" class="auth-form" style="display: none;">
+            <h2>Login</h2>
+            <input type="text" id="loginUsername" placeholder="Username">
+            <input type="password" id="loginPassword" placeholder="Password">
+            <button id="loginButton">Login</button>
+            <p id="loginError" class="error"></p>
+            <p>Don't have an account? <button id="showSignupButton">Sign Up</button></p>
+        </div>
+
+        <div id="newPostSection" style="display: none;">
+            <h2>Create a New Blog Post</h2>
+            <input type="text" id="postTitle" placeholder="Title">
+            <textarea id="postContent" placeholder="Write your blog post here..."></textarea>
+            <button id="createPostButton">Create Post</button>
+        </div>
+
+        <div id="postsSection">
+            <h2>Your Blog Posts</h2>
+            <div id="postsContainer"></div>
+        </div>
+
+        <div id="friendsSection" style="display: none;">
+            <h2>Friends</h2>
+            <input type="text" id="friendUsername" placeholder="Add a friend by username">
+            <button id="addFriendButton">Add Friend</button>
+            <div id="friendsContainer"></div>
+        </div>
+
+        <div id="messagesSection" style="display: none;">
+            <h2>Messages</h2>
+            <input type="text" id="messageRecipient" placeholder="Recipient Username">
+            <textarea id="messageContent" placeholder="Type your message here..."></textarea>
+            <button id="sendMessageButton">Send Message</button>
+            <div id="messagesContainer"></div>
+        </div>
+    </div>
+
+    <script>
+        const users = {};
+        let currentUser = null;
+        const posts = {};
+        const friends = {};
+        const messages = {};
+
+        function toggleVisibility(id, visible) {
+            document.getElementById(id).style.display = visible ? 'block' : 'none';
+        }
+
+        document.getElementById('signupButton').onclick = () => {
+            const username = document.getElementById('signupUsername').value.trim();
+            const password = document.getElementById('signupPassword').value.trim();
+            const profilePicInput = document.getElementById('signupProfilePic');
+            const profilePicFile = profilePicInput.files[0];
+
+            if (!username || !password || !profilePicFile) {
+                document.getElementById('signupError').textContent = "Please fill all fields.";
+                return;
+            }
+
+            if (users[username]) {
+                document.getElementById('signupError').textContent = "Username already exists.";
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                users[username] = { password, profilePic: reader.result };
+                posts[username] = [];
+                friends[username] = [];
+                messages[username] = [];
+                currentUser = username;
+
+                alert("Signup successful! Redirecting to your blog...");
+                redirectToBlog();
+            };
+
+            reader.readAsDataURL(profilePicFile);
+        };
+
+        document.getElementById('loginButton').onclick = () => {
+            const username = document.getElementById('loginUsername').value.trim();
+            const password = document.getElementById('loginPassword').value.trim();
+
+            if (!username || !password) {
+                document.getElementById('loginError').textContent = "Please fill in both fields.";
+                return;
+            }
+
+            if (users[username] && users[username].password === password) {
+                currentUser = username;
+                alert("Login successful! Redirecting to your blog...");
+                redirectToBlog();
+            } else {
+                document.getElementById('loginError').textContent = "Invalid username or password.";
+            }
+        };
+
+        function redirectToBlog() {
+            toggleVisibility('signupForm', false);
+            toggleVisibility('loginForm', false);
+            toggleVisibility('newPostSection', true);
+            toggleVisibility('logoutButton', true);
+            toggleVisibility('friendsSection', true);
+            toggleVisibility('messagesSection', true);
+            renderPosts();
+            renderFriends();
+        }
+
+        document.getElementById('createPostButton').onclick = () => {
+            const title = document.getElementById('postTitle').value.trim();
+            const content = document.getElementById('postContent').value.trim();
+
+            if (!title || !content) {
+                alert("Please fill out the title and content.");
+                return;
+            }
+
+            const post = { id: posts[currentUser].length + 1, author: currentUser, title, content, comments: [] };
+            posts[currentUser].push(post);
+            renderPosts();
+            document.getElementById('postTitle').value = '';
+            document.getElementById('postContent').value = '';
+        };
+
+        function renderPosts() {
+            const postsContainer = document.getElementById('postsContainer');
+            postsContainer.innerHTML = '';
+            posts[currentUser].forEach(post => {
+                const postDiv = document.createElement('div');
+                postDiv.className = 'post';
+
+                postDiv.innerHTML = `
+                    <h3>${post.title}</h3>
+                    <p>${post.content}</p>
+                    <p><strong>Author: </strong>${post.author}</p>
+                    <button class="edit-button" onclick="editPost(${post.id})">Edit</button>
+                    <button class="delete-button" onclick="deletePost(${post.id})">Delete</button>
+                    <div class="comment-section">
+                        <h4>Comments</h4>
+                        <input type="text" placeholder="Add a comment" onkeypress="addComment(event, ${post.id})">
+                        <div id="comments-${post.id}">${renderComments(post.comments)}</div>
+                    </div>
+                `;
+
+                postsContainer.appendChild(postDiv);
+            });
+        }
+
+        function addComment(event, postId) {
+            if (event.key === 'Enter') {
+                const comment = event.target.value.trim();
+                if (comment) {
+                    const post = posts[currentUser].find(p => p.id === postId);
+                    post.comments.push({ author: currentUser, comment });
+                    event.target.value = ''; 
+                    renderPosts(); 
+                }
+            }
+        }
+
+        function renderComments(comments) {
+            return comments
+                .map(comment => `<p><strong>${comment.author}:</strong> ${comment.comment}</p>`)
+                .join('');
+        }
+
+        function editPost(postId) {
+            const post = posts[currentUser].find(p => p.id === postId);
+            const newTitle = prompt("Edit the title", post.title);
+            const newContent = prompt("Edit the content", post.content);
+
+            if (newTitle && newContent) {
+                post.title = newTitle;
+                post.content = newContent;
+                renderPosts();
+            }
+        }
+
+        function deletePost(postId) {
+            const postIndex = posts[currentUser].findIndex(p => p.id === postId);
+
+            if (postIndex > -1 && confirm("Are you sure you want to delete this post?")) {
+                posts[currentUser].splice(postIndex, 1);
+                renderPosts();
+            }
+        }
+
+        document.getElementById('addFriendButton').onclick = () => {
+            const friendUsername = document.getElementById('friendUsername').value.trim();
+            if (!friendUsername || friendUsername === currentUser || friends[currentUser].includes(friendUsername)) {
+                alert("Invalid friend username.");
+                return;
+            }
+
+            if (users[friendUsername]) {
+                friends[currentUser].push(friendUsername);
+                alert(`${friendUsername} has been added to your friends.`);
+                document.getElementById('friendUsername').value = '';
+                renderFriends();
+            } else {
+                alert("User not found.");
+            }
+        };
+
+        function renderFriends() {
+            const friendsContainer = document.getElementById('friendsContainer');
+            friendsContainer.innerHTML = '';
+            friends[currentUser].forEach(friend => {
+                const friendDiv = document.createElement('div');
+                friendDiv.className = 'friend';
+                friendDiv.innerHTML = `<img src="${users[friend].profilePic}" alt="${friend}'s profile picture"><h3>${friend}</h3>`;
+                friendsContainer.appendChild(friendDiv);
+            });
+        }
+
+        document.getElementById('sendMessageButton').onclick = () => {
+            const recipient = document.getElementById('messageRecipient').value.trim();
+            const content = document.getElementById('messageContent').value.trim();
+
+            if (!recipient || !content) {
+                alert("Please fill out all fields.");
+                return;
+            }
+
+            if (!friends[currentUser].includes(recipient)) {
+                alert("You can only message your friends.");
+                return;
+            }
+
+            if (!messages[recipient]) {
+                messages[recipient] = [];
+            }
+
+            messages[recipient].push({ from: currentUser, content });
+            alert("Message sent!");
+            document.getElementById('messageRecipient').value = '';
+            document.getElementById('messageContent').value = '';
+            renderMessages();
+        };
+
+        function renderMessages() {
+            const messagesContainer = document.getElementById('messagesContainer');
+            messagesContainer.innerHTML = '';
+            for (let friend of friends[currentUser]) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message';
+                messageDiv.innerHTML = `<h3>Messages with ${friend}</h3>`;
+                const friendMessages = messages[friend] || [];
+                friendMessages.forEach(msg => {
+                    messageDiv.innerHTML += `<p><strong>${msg.from}:</strong> ${msg.content}</p>`;
+                });
+                messagesContainer.appendChild(messageDiv);
+            }
+        }
+
+        // Logout function
+        document.getElementById('logoutButton').onclick = () => {
+            currentUser = null;
+            toggleVisibility('newPostSection', false);
+            toggleVisibility('logoutButton', false);
+            toggleVisibility('friendsSection', false);
+            toggleVisibility('messagesSection', false);
+            toggleVisibility('signupForm', true);
+            toggleVisibility('loginForm', false);
+
+            // Clear input fields
+            document.getElementById('signupUsername').value = '';
+            document.getElementById('signupPassword').value = '';
+            document.getElementById('friendUsername').value = '';
+            document.getElementById('messageRecipient').value = '';
+            document.getElementById('messageContent').value = '';
+            document.getElementById('postTitle').value = '';
+            document.getElementById('postContent').value = '';
+        };
+
+        document.getElementById('showLoginButton').onclick = () => {
+            toggleVisibility('signupForm', false);
+            toggleVisibility('loginForm', true);
+        };
+
+        document.getElementById('showSignupButton').onclick = () => {
+            toggleVisibility('loginForm', false);
+            toggleVisibility('signupForm', true);
+        };
+
+        renderPosts();
+        renderFriends();
+    </script>
+</body>
+</html>
+
+**NAME:** TEJASHWINI K
+**COMPANY:** CODETECH IT SOLUTIONS
+**ID:** CT04DS7539
+**DOMAIN:** WEB DEVELOPMENT
+**DURATION:** AUGUST 30th - SEPTEMBER 30th,2024
+**MENTOR:** NEELA SANTHOSH KUMAR
+
+**OVERVIEW OF THE PROJECT:
+
+**PROJECT: CREATE A BLOGGING PLATFORM
+
+Overview
+This code creates a simple web-based blogging platform that allows users to sign up, log in, create posts, manage friends, and send messages. It uses HTML, CSS, and JavaScript to provide interactivity and basic functionality.
+
+Key Features
+User Authentication:
+Sign Up: Users can create an account by entering a username, password, and profile picture.
+Login: Existing users can log in with their credentials. Error messages are shown for invalid inputs.
+
+Post Management:
+Users can create blog posts with a title and content.
+Each post can be edited or deleted.
+Posts are displayed in a dedicated section with options to comment on them.
+
+Friends Management:
+Users can add friends by entering their usernames.
+A list of friends is displayed with their profile pictures.
+
+Messaging System:
+Users can send messages to their friends.
+The messaging section allows users to view messages exchanged with each friend.
+
+Responsive Design:
+Basic styling is provided using CSS to create a clean and modern interface. The layout is responsive and adjusts for different screen sizes.
+
+User Flow
+Users can navigate between sign-up and login forms.
+After logging in, they can create posts, manage friends, and send messages.
+Users can edit or delete their posts and view comments and messages.
+
+Conclusion
+This code provides a foundational framework for a blogging platform with basic social networking features. It can be further enhanced with server-side integration, database support, and additional 
+functionalities for a more comprehensive user experience.
+
+
+
+
+
